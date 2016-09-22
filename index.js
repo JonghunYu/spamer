@@ -5,36 +5,44 @@ var request = Promise.promisifyAll(require('request'))
 request.getAsync('https://remoteok.io/remote-dev-jobs.json')
 .then((response) => {
   return extractEmail(response.body)
-}).then((addresses) => {
+}).filter((d) => d)
+.then((addresses) => {
   return console.log(addresses)
 }).then(() => request.getAsync('https://remoteok.io/remote-mobile-jobs.json'))
 .then((response) => {
   return extractEmail(response.body)
-}).then((addresses) => {
+}).filter((d) => d)
+.then((addresses) => {
   return console.log(addresses)
 })
 
-//fs.readFile('./remote-dev-jobs.json', extractEmail)
-//fs.readFile('./remote-mobile-jobs.json', extractEmail)
-//
 function extractEmail(data) {
   data = JSON.parse(data)
-  var emailRegex = /[\w\d._-]+@[\w\d._-]+\.[\w\d._-]+/g
   var linkRegex = /<a\s+(?:[^>]*?\s+)?href="([^"]*)"/g
   var list = []
-  _.each(data, (item) => {
-    var description = unescape(item.description)
-    let res = linkRegex.exec(description)
-    console.log(res)
-    //let res = emailRegex.exec(description)
-    //if (res) {
-    //  let addr = res[0]
-    //  if (addr.slice(-1) === ".") {
-    //    addr = addr.slice(0, -1)
-    //  }
-    //  list.push(addr)
-    //} else {
-    //}
+  return Promise.map(data, (post) => {
+    var description = unescape(post.description)
+    let res = getEmail(description)
+    if (res) {
+      return res
+    }
+    let link = linkRegex.exec(description)
+    if (!link) {
+      return null
+    }
+    return request.getAsync(link[1])
+      .then((response) => getEmail(response.body))
   })
-  return list
+}
+
+function getEmail(string) {
+  var emailRegex = /[\w\d._-]+@[\w\d._-]+\.[\w\d._-]+/g
+  var res = emailRegex.exec(string)
+  if (res) {
+    res = res[0]
+    if (res.slice(-1) === ".") {
+      res = res.slice(0, -1)
+    }
+  }
+  return res
 }
