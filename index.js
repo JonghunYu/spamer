@@ -1,20 +1,57 @@
-var fs = require('fs')
-var _ = require('lodash')
-var Promise = require('bluebird')
-var request = Promise.promisifyAll(require('request'))
+var fs        = require('fs')
+var email     = fs.readFileSync('email.html')
+var _         = require('lodash')
+var Promise   = require('bluebird')
+var request   = Promise.promisifyAll(require('request'))
+var mailer    = require('nodemailer')
+var Store     = require("jfs")
+var db        = new Store("data", { pretty: true })
+var sentList  = db.getSync("sent") || []
+
+// email setting
+var smtpConfig = {
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // use SSL
+    auth: {
+      user: process.env.GMAIL_ACCOUNT,
+      pass: process.env.GMAIL_PASSWORD
+    }
+}
+var transporter = Promise.promisifyAll(mailer.createTransport(smtpConfig))
+var mailOptions = {
+  from: '"Jonghun Yu" <jonghun.yu@nerdyfactory.com>', // sender address
+  to: '', // list of receivers
+  subject: 'Hi I\'m Jonghun Yu from nerdyfactory', // Subject line
+  html: email
+}
+
+var list = []
+
+// get dev jobs
 request.getAsync('https://remoteok.io/remote-dev-jobs.json')
-.then((response) => {
-  return extractEmail(response.body)
-}).filter((d) => d)
+.then((response) => extractEmail(response.body))
+.then((addresses) => list = list.concat(addresses))
+
+// get mobile jobs
+.then(() => request.getAsync('https://remoteok.io/remote-mobile-jobs.json'))
+.then((response) => extractEmail(response.body))
+
+// send email except addresses sent already
 .then((addresses) => {
-  return console.log(addresses)
-}).then(() => request.getAsync('https://remoteok.io/remote-mobile-jobs.json'))
-.then((response) => {
-  return extractEmail(response.body)
-}).filter((d) => d)
-.then((addresses) => {
-  return console.log(addresses)
+  return _.chain(list.concat(addresses))
+    .compact()
+    .uniq()
+    .difference(sentList)
+    .value()
+}).map((address) => sendEmail(address))
+
+// update sent list
+.then((list) => {
+  console.log(list)
+  return db.saveSync("sent", _.union(list, sentList))
 })
+
 
 function extractEmail(data) {
   data = JSON.parse(data)
@@ -32,7 +69,7 @@ function extractEmail(data) {
     }
     return request.getAsync(link[1])
       .then((response) => getEmail(response.body))
-  })
+  }, {concurrency: 4})
 }
 
 function getEmail(string) {
@@ -45,4 +82,17 @@ function getEmail(string) {
     }
   }
   return res
+}
+
+function sendEmail(address) {
+  mailOptions.to = address
+  return transporter.sendMailAsync(mailOptions)
+    .then((info, error) => {
+      if (error) {
+        console.log(error)
+        return null
+      }
+      console.log('Message sent: ' + info.response)
+      return address
+    })
 }
