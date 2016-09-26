@@ -44,7 +44,7 @@ request.getAsync('https://remoteok.io/remote-dev-jobs.json')
     .uniq()
     .difference(sentList)
     .value()
-}).map((address) => sendEmail(address))
+}).map((address) => sendEmail(address), {concurrency: 1})
 
 // update sent list
 .then((list) => {
