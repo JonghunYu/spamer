@@ -93,7 +93,7 @@ function sendEmail(address) {
         console.log(error)
         return null
       }
-      console.log('Message sent: ' + info.response)
+      console.log('Message sent: ', address, info.response)
       return address
     })
 }
