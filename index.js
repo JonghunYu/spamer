@@ -1,3 +1,4 @@
+"use strict";
 var fs        = require('fs')
 var email     = fs.readFileSync('email.html')
 var _         = require('lodash')
