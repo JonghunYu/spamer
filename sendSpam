@@ -2,11 +2,12 @@
 
 "use strict";
 if (process.argv.length < 3) {
-  console.log("usage: sendSpam your@email.address")
+  console.log("usage: sendSpam your@email.address \[\"your subject\"\]")
   process.exit(-1)
 }
 
 var emailAddress = process.argv[2]
+var subject = process.argv[3] || "Hi I\'m Jonghun Yu from nerdyfactory"
 
 var fs        = require('fs')
 var email     = fs.readFileSync('email.html')
@@ -31,7 +32,7 @@ var transporter = Promise.promisifyAll(mailer.createTransport(smtpConfig))
 var mailOptions = {
   from: '"Jonghun Yu" <jonghun.yu@nerdyfactory.com>', // sender address
   to: '', // list of receivers
-  subject: 'Hi I\'m Jonghun Yu from nerdyfactory', // Subject line
+  subject: subject, // Subject line
   html: email
 }
 
