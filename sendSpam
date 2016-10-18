@@ -10,7 +10,7 @@ var emailAddress = process.argv[2]
 var subject = process.argv[3] || "Hi I\'m Jonghun Yu from nerdyfactory"
 
 var fs        = require('fs')
-var email     = fs.readFileSync('email.html')
+var email     = fs.readFileSync('application.html')
 var _         = require('lodash')
 var Promise   = require('bluebird')
 var mailer    = require('nodemailer')
