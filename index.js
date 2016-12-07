@@ -55,7 +55,7 @@ request.getAsync('https://remoteok.io/remote-dev-jobs.json')
 .then((list) => {
   console.log(list);
   return db.saveSync("sent", _.union(list, sentList));
-});
+}).catch(e => console.log(e));
 
 
 function extractEmail(data) {
